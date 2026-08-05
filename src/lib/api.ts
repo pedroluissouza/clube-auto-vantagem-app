@@ -1,21 +1,36 @@
 /**
- * Camada de API — pronta para trocar mock por chamadas reais.
- * Base: VITE_API_URL. Token Bearer salvo no localStorage.
+ * Camada de API do app do associado.
+ * Base: VITE_API_URL. Autenticação: Authorization: Bearer {token} (localStorage).
+ * Sem VITE_API_URL definido, as funções devolvem os mocks no mesmo formato do contrato.
  */
 import {
-  mockCarteirinha,
-  mockFaturas,
-  mockContrato,
   mockBeneficios,
-  type Carteirinha,
-  type Fatura,
-  type Contrato,
-  type Beneficio,
+  mockCarteirinha,
+  mockContrato,
+  mockFaturas,
+  mockLogin,
 } from "./mock-data";
+import type {
+  ApiErro,
+  Beneficios,
+  Carteirinha,
+  Contrato,
+  Faturas,
+  LoginResponse,
+} from "./types";
 
-const API_URL = import.meta.env["VITE_API_URL"] ?? "";
+const API_URL = (import.meta.env["VITE_API_URL"] ?? "").replace(/\/$/, "");
 const TOKEN_KEY = "cav_token";
 const USE_MOCK = !API_URL;
+
+export class ApiError extends Error {
+  status: number;
+  constructor(status: number, mensagem: string) {
+    super(mensagem);
+    this.status = status;
+    this.name = "ApiError";
+  }
+}
 
 export function getToken(): string | null {
   if (typeof window === "undefined") return null;
@@ -40,40 +55,54 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
       ...(init.headers ?? {}),
     },
   });
-  if (!res.ok) throw new Error(`Erro ${res.status} ao chamar ${path}`);
+
+  if (!res.ok) {
+    let mensagem = `Erro ${res.status}`;
+    try {
+      const corpo = (await res.json()) as ApiErro;
+      if (corpo?.erro) mensagem = corpo.erro;
+    } catch {
+      /* resposta sem corpo JSON */
+    }
+    if (res.status === 401) clearToken();
+    throw new ApiError(res.status, mensagem);
+  }
+
   return (await res.json()) as T;
 }
 
-export async function login(usuario: string, senha: string): Promise<{ token: string }> {
-  if (USE_MOCK) {
-    const token = "mock-token";
-    setToken(token);
-    return { token };
-  }
-  const data = await request<{ token: string }>("/auth/login", {
-    method: "POST",
-    body: JSON.stringify({ usuario, senha }),
-  });
+/** POST /associado/login */
+export async function login(identificador: string, senha: string): Promise<LoginResponse> {
+  const data = USE_MOCK
+    ? mockLogin
+    : await request<LoginResponse>("/associado/login", {
+        method: "POST",
+        body: JSON.stringify({ identificador, senha }),
+      });
   setToken(data.token);
   return data;
 }
 
+/** GET /associado/me/carteirinha */
 export async function minhaCarteirinha(): Promise<Carteirinha> {
   if (USE_MOCK) return mockCarteirinha;
-  return request<Carteirinha>("/associado/carteirinha");
+  return request<Carteirinha>("/associado/me/carteirinha");
 }
 
-export async function minhasFaturas(): Promise<Fatura[]> {
+/** GET /associado/me/faturas */
+export async function minhasFaturas(): Promise<Faturas> {
   if (USE_MOCK) return mockFaturas;
-  return request<Fatura[]>("/associado/faturas");
+  return request<Faturas>("/associado/me/faturas");
 }
 
+/** GET /associado/me/contrato */
 export async function meuContrato(): Promise<Contrato> {
   if (USE_MOCK) return mockContrato;
-  return request<Contrato>("/associado/contrato");
+  return request<Contrato>("/associado/me/contrato");
 }
 
-export async function meusBeneficios(): Promise<Beneficio[]> {
+/** GET /associado/me/beneficios */
+export async function meusBeneficios(): Promise<Beneficios> {
   if (USE_MOCK) return mockBeneficios;
-  return request<Beneficio[]>("/associado/beneficios");
+  return request<Beneficios>("/associado/me/beneficios");
 }
