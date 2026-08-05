@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ChevronRight, Droplet, ShieldCheck, Store, Truck, Wrench } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { Screen } from "@/components/AppShell";
-import { mockBeneficios, mockParceiros, type Beneficio } from "@/lib/mock-data";
+import { mockBeneficios } from "@/lib/mock-data";
 
 export const Route = createFileRoute("/beneficios")({
   head: () => ({
@@ -21,22 +22,26 @@ export const Route = createFileRoute("/beneficios")({
   component: BeneficiosScreen,
 });
 
-const icones = {
-  droplet: Droplet,
-  wrench: Wrench,
-  truck: Truck,
-  shield: ShieldCheck,
-} satisfies Record<Beneficio["icone"], typeof Droplet>;
+/** A API entrega só título/descrição; o ícone é escolhido no app. */
+function iconeBeneficio(titulo: string): LucideIcon {
+  const t = titulo.toLowerCase();
+  if (t.includes("lavagem")) return Droplet;
+  if (t.includes("oficina") || t.includes("desconto")) return Wrench;
+  if (t.includes("guincho") || t.includes("reboque")) return Truck;
+  return ShieldCheck;
+}
 
 function BeneficiosScreen() {
+  const { beneficios, parceiros } = mockBeneficios;
+
   return (
     <Screen title="Benefícios">
       <ul className="flex flex-col gap-2">
-        {mockBeneficios.map((b) => {
-          const Icon = icones[b.icone];
+        {beneficios.map((b) => {
+          const Icon = iconeBeneficio(b.titulo);
           return (
             <li
-              key={b.id}
+              key={b.titulo}
               className="flex items-center gap-3 rounded-xl border border-border bg-card p-3"
             >
               <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/15">
@@ -54,13 +59,18 @@ function BeneficiosScreen() {
 
       <p className="mt-6 mb-2 text-[13px] text-muted-foreground">Parceiros próximos</p>
       <div className="grid grid-cols-2 gap-3">
-        {mockParceiros.map((p) => (
+        {parceiros.map((p) => (
           <div
-            key={p}
+            key={p.nome}
             className="flex items-center gap-2 rounded-xl border border-border bg-card p-3"
           >
             <Store size={16} className="shrink-0 text-primary" />
-            <span className="truncate text-xs">{p}</span>
+            <div className="min-w-0">
+              <p className="truncate text-xs">{p.nome}</p>
+              <p className="truncate text-[11px] text-muted-foreground capitalize">
+                {p.categoria}
+              </p>
+            </div>
           </div>
         ))}
       </div>

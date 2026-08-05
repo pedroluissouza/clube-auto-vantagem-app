@@ -2,7 +2,8 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Bell, Car, ChevronRight, Headset, LogOut, User } from "lucide-react";
 import { Screen } from "@/components/AppShell";
 import { clearToken } from "@/lib/api";
-import { mockCarteirinha } from "@/lib/mock-data";
+import { mockCarteirinha, mockContrato } from "@/lib/mock-data";
+import { formatarData } from "@/lib/format";
 
 export const Route = createFileRoute("/perfil")({
   head: () => ({
@@ -43,7 +44,9 @@ function PerfilScreen() {
         </div>
         <div className="min-w-0">
           <p className="truncate text-sm font-medium">{c.nome}</p>
-          <p className="text-xs text-muted-foreground">Associado desde {c.associadoDesde}</p>
+          <p className="text-xs text-muted-foreground">
+            Associado desde {formatarData(mockContrato.plano.inicio)}
+          </p>
         </div>
       </div>
 

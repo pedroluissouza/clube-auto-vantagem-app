@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Car, Download, QrCode, Share2 } from "lucide-react";
 import { Screen } from "@/components/AppShell";
 import { mockCarteirinha } from "@/lib/mock-data";
+import { formatarMoeda, rotuloStatus } from "@/lib/format";
 
 export const Route = createFileRoute("/carteirinha")({
   head: () => ({
@@ -20,11 +21,12 @@ export const Route = createFileRoute("/carteirinha")({
 
 function CarteirinhaScreen() {
   const c = mockCarteirinha;
+  const ativo = c.status === "ativo";
   const campos = [
     ["CPF", c.cpf],
-    ["Veículo", c.veiculo],
-    ["Placa", c.placa],
-    ["Plano", `${c.valorMensal}/mês`],
+    ["Veículo", c.veiculo.modelo],
+    ["Placa", c.veiculo.placa],
+    ["Plano", `${formatarMoeda(c.plano.valor)}/mês`],
   ] as const;
 
   return (
@@ -35,8 +37,12 @@ function CarteirinhaScreen() {
             <Car size={18} className="shrink-0 text-primary" />
             <span className="truncate text-sm font-medium">Clube Auto Vantagem</span>
           </div>
-          <span className="shrink-0 rounded-full bg-success/15 px-2.5 py-1 text-[11px] text-success">
-            {c.status}
+          <span
+            className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] ${
+              ativo ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive"
+            }`}
+          >
+            {rotuloStatus(c.status)}
           </span>
         </div>
 
