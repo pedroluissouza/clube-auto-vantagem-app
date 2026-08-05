@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Bell, FileText, Gift, Receipt, Store, Car } from "lucide-react";
 import { Screen } from "@/components/AppShell";
 import { mockCarteirinha } from "@/lib/mock-data";
+import { formatarData, formatarMoeda, rotuloStatus } from "@/lib/format";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -32,6 +33,7 @@ const atalhos = [
 function HomeScreen() {
   const c = mockCarteirinha;
   const primeiroNome = c.nome.split(" ")[0];
+  const ativo = c.status === "ativo";
 
   return (
     <Screen>
@@ -51,8 +53,12 @@ function HomeScreen() {
             <Car size={18} className="shrink-0 text-primary" />
             <span className="truncate text-sm font-medium">Clube Auto Vantagem</span>
           </div>
-          <span className="shrink-0 rounded-full bg-success/15 px-2.5 py-1 text-[11px] text-success">
-            {c.status}
+          <span
+            className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] ${
+              ativo ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive"
+            }`}
+          >
+            {rotuloStatus(c.status)}
           </span>
         </div>
         <p className="text-sm font-medium">{c.nome}</p>
@@ -60,19 +66,19 @@ function HomeScreen() {
         <dl className="grid grid-cols-2 gap-3 text-xs">
           <div>
             <dt className="text-muted-foreground">Veículo</dt>
-            <dd className="font-medium">{c.veiculo}</dd>
+            <dd className="font-medium">{c.veiculo.modelo}</dd>
           </div>
           <div>
             <dt className="text-muted-foreground">Placa</dt>
-            <dd className="font-medium">{c.placa}</dd>
+            <dd className="font-medium">{c.veiculo.placa}</dd>
           </div>
           <div>
             <dt className="text-muted-foreground">Plano</dt>
-            <dd className="font-medium text-primary">{c.valorMensal}/mês</dd>
+            <dd className="font-medium text-primary">{formatarMoeda(c.plano.valor)}/mês</dd>
           </div>
           <div>
             <dt className="text-muted-foreground">Vencimento</dt>
-            <dd className="font-medium">{c.vencimento}</dd>
+            <dd className="font-medium">{formatarData(c.vencimento)}</dd>
           </div>
         </dl>
       </section>
@@ -94,8 +100,10 @@ function HomeScreen() {
         <p className="text-xs text-muted-foreground">Próximo vencimento</p>
         <div className="mt-1 flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-xl font-semibold text-primary">{c.valorMensal}</p>
-            <p className="text-xs text-muted-foreground">Vence em {c.vencimento}</p>
+            <p className="text-xl font-semibold text-primary">{formatarMoeda(c.plano.valor)}</p>
+            <p className="text-xs text-muted-foreground">
+              Vence em {formatarData(c.vencimento)}
+            </p>
           </div>
           <Link
             to="/financeiro"
