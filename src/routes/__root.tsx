@@ -77,14 +77,20 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "Clube Auto Vantagem — App do Associado" },
+      {
+        name: "description",
+        content:
+          "App do associado do Clube Auto Vantagem: carteirinha digital, faturas, contrato e benefícios.",
+      },
+      { name: "author", content: "Clube Auto Vantagem" },
+      { property: "og:title", content: "Clube Auto Vantagem — App do Associado" },
+      {
+        property: "og:description",
+        content: "Carteirinha digital, faturas, contrato e benefícios em um só lugar.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
       {
