@@ -1,57 +1,89 @@
-/** Tipos espelhando exatamente o contrato da API externa. */
-
 export type StatusAssociado = "ativo" | "inadimplente" | "cancelado";
 export type StatusFatura = "pago" | "pendente" | "atrasado";
+export type StatusContrato = "vigente" | "encerrado" | "cancelado";
 
-export type LoginRequest = { identificador: string; senha: string };
+export interface LoginRequest {
+  identificador: string; // e-mail ou CPF
+  senha: string;
+}
 
-export type LoginResponse = {
+export interface LoginResponse {
   token: string;
-  associado: { id: string; nome: string };
-};
+  associado: {
+    id: string;
+    nome: string;
+  };
+}
 
-export type Carteirinha = {
+export interface Veiculo {
+  modelo: string;
+  placa: string;
+}
+
+export interface Plano {
+  nome: string;
+  valor: number;
+}
+
+export interface Carteirinha {
   codigo: string;
   nome: string;
   cpf: string;
   status: StatusAssociado;
-  veiculo: { modelo: string; placa: string };
-  plano: { nome: string; valor: number };
-  /** ISO YYYY-MM-DD */
-  vencimento: string;
-};
+  veiculo: Veiculo;
+  plano: Plano;
+  vencimento: string; // ISO date (YYYY-MM-DD)
+}
 
-export type Faturas = {
-  proxima: {
-    valor: number;
-    vencimento: string;
-    status: StatusFatura;
-    link_pagamento: string | null;
-  };
-  historico: Array<{
-    mes_referencia: string;
-    valor: number;
-    pago_em: string | null;
-    status: StatusFatura;
-  }>;
-};
+export interface ProximaFatura {
+  valor: number;
+  vencimento: string; // ISO date
+  status: StatusFatura;
+  link_pagamento: string;
+}
 
-export type Contrato = {
+export interface FaturaHistorico {
+  mes_referencia: string; // YYYY-MM
+  valor: number;
+  pago_em: string | null; // ISO date, null se ainda nao pago
+  status: StatusFatura;
+}
+
+export interface Faturas {
+  proxima: ProximaFatura;
+  historico: FaturaHistorico[];
+}
+
+export interface PlanoContrato {
+  nome: string;
+  valor_mensal: number;
+  inicio: string; // ISO date
+  dia_vencimento: number;
+}
+
+export interface Contrato {
   titulo: string;
-  assinado_em: string;
-  status: string;
+  assinado_em: string; // ISO date
+  status: StatusContrato;
   url_pdf: string;
-  plano: {
-    nome: string;
-    valor_mensal: number;
-    inicio: string;
-    dia_vencimento: number;
-  };
-};
+  plano: PlanoContrato;
+}
 
-export type Beneficios = {
-  beneficios: Array<{ titulo: string; descricao: string }>;
-  parceiros: Array<{ nome: string; categoria: string }>;
-};
+export interface Beneficio {
+  titulo: string;
+  descricao: string;
+}
 
-export type ApiErro = { erro: string };
+export interface Parceiro {
+  nome: string;
+  categoria: string;
+}
+
+export interface Beneficios {
+  beneficios: Beneficio[];
+  parceiros: Parceiro[];
+}
+
+export interface ApiErro {
+  erro: string;
+}

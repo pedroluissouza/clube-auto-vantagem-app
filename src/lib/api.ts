@@ -1,108 +1,65 @@
-/**
- * Camada de API do app do associado.
- * Base: VITE_API_URL. Autenticação: Authorization: Bearer {token} (localStorage).
- * Sem VITE_API_URL definido, as funções devolvem os mocks no mesmo formato do contrato.
- */
-import {
-  mockBeneficios,
-  mockCarteirinha,
-  mockContrato,
-  mockFaturas,
-  mockLogin,
-} from "./mock-data";
 import type {
-  ApiErro,
-  Beneficios,
-  Carteirinha,
-  Contrato,
-  Faturas,
   LoginResponse,
+  Carteirinha,
+  Faturas,
+  Contrato,
+  Beneficios,
+  ApiErro,
 } from "./types";
 
-const API_URL = (import.meta.env["VITE_API_URL"] ?? "").replace(/\/$/, "");
-const TOKEN_KEY = "cav_token";
-const USE_MOCK = !API_URL;
+const BASE_URL = import.meta.env.VITE_API_URL ?? "https://planos.clubeautovantagem.com.br/api";
 
-export class ApiError extends Error {
+function getToken(): string | null {
+  return localStorage.getItem("cav_token");
+}
+
+class ApiError extends Error {
   status: number;
-  constructor(status: number, mensagem: string) {
-    super(mensagem);
+  constructor(message: string, status: number) {
+    super(message);
     this.status = status;
-    this.name = "ApiError";
   }
 }
 
-export function getToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return window.localStorage.getItem(TOKEN_KEY);
-}
-
-export function setToken(token: string) {
-  if (typeof window !== "undefined") window.localStorage.setItem(TOKEN_KEY, token);
-}
-
-export function clearToken() {
-  if (typeof window !== "undefined") window.localStorage.removeItem(TOKEN_KEY);
-}
-
-async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const token = getToken();
-  const res = await fetch(`${API_URL}${path}`, {
-    ...init,
+async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const res = await fetch(`${BASE_URL}${path}`, {
+    ...options,
     headers: {
       "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(init.headers ?? {}),
+      ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
+      ...options.headers,
     },
   });
 
   if (!res.ok) {
-    let mensagem = `Erro ${res.status}`;
-    try {
-      const corpo = (await res.json()) as ApiErro;
-      if (corpo?.erro) mensagem = corpo.erro;
-    } catch {
-      /* resposta sem corpo JSON */
-    }
-    if (res.status === 401) clearToken();
-    throw new ApiError(res.status, mensagem);
+    const body: ApiErro = await res.json().catch(() => ({ erro: "Erro desconhecido" }));
+    throw new ApiError(body.erro ?? "Erro na API", res.status);
   }
 
-  return (await res.json()) as T;
+  return res.json() as Promise<T>;
 }
 
-/** POST /associado/login */
-export async function login(identificador: string, senha: string): Promise<LoginResponse> {
-  const data = USE_MOCK
-    ? mockLogin
-    : await request<LoginResponse>("/associado/login", {
-        method: "POST",
-        body: JSON.stringify({ identificador, senha }),
-      });
-  setToken(data.token);
-  return data;
-}
+export const api = {
+  login: (identificador: string, senha: string) =>
+    request<LoginResponse>("/associado/login", {
+      method: "POST",
+      body: JSON.stringify({ identificador, senha }),
+    }).then((data) => {
+      localStorage.setItem("cav_token", data.token);
+      return data;
+    }),
 
-/** GET /associado/me/carteirinha */
-export async function minhaCarteirinha(): Promise<Carteirinha> {
-  if (USE_MOCK) return mockCarteirinha;
-  return request<Carteirinha>("/associado/me/carteirinha");
-}
+  logout: () => {
+    localStorage.removeItem("cav_token");
+  },
 
-/** GET /associado/me/faturas */
-export async function minhasFaturas(): Promise<Faturas> {
-  if (USE_MOCK) return mockFaturas;
-  return request<Faturas>("/associado/me/faturas");
-}
+  minhaCarteirinha: () => request<Carteirinha>("/associado/me/carteirinha"),
 
-/** GET /associado/me/contrato */
-export async function meuContrato(): Promise<Contrato> {
-  if (USE_MOCK) return mockContrato;
-  return request<Contrato>("/associado/me/contrato");
-}
+  minhasFaturas: () => request<Faturas>("/associado/me/faturas"),
 
-/** GET /associado/me/beneficios */
-export async function meusBeneficios(): Promise<Beneficios> {
-  if (USE_MOCK) return mockBeneficios;
-  return request<Beneficios>("/associado/me/beneficios");
-}
+  meuContrato: () => request<Contrato>("/associado/me/contrato"),
+
+  meusBeneficios: () => request<Beneficios>("/associado/me/beneficios"),
+};
+
+export { ApiError };
