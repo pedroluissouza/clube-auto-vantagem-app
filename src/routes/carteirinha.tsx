@@ -1,8 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { Car, Download, QrCode, Share2 } from "lucide-react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { Car, Download, QrCode, Share2, LogIn } from "lucide-react";
 import { Screen } from "@/components/AppShell";
-import { mockCarteirinha } from "@/lib/mock-data";
-import { formatarMoeda, rotuloStatus } from "@/lib/format";
+import { useSupabase } from "@/context/SupabaseContext";
+import { formatarData, formatarMoeda, rotuloStatus } from "@/lib/format";
 
 export const Route = createFileRoute("/carteirinha")({
   head: () => ({
@@ -20,13 +20,38 @@ export const Route = createFileRoute("/carteirinha")({
 });
 
 function CarteirinhaScreen() {
-  const c = mockCarteirinha;
-  const ativo = c.status === "ativo";
+  const navigate = useNavigate();
+  const { user, profile, subscription } = useSupabase();
+
+  if (!user) {
+    return (
+      <Screen title="Carteirinha">
+        <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 text-center px-4">
+          <Car size={32} className="text-cyan-400" />
+          <p className="text-sm text-muted-foreground">Faça login para acessar sua carteirinha digital.</p>
+          <button
+            onClick={() => navigate({ to: "/login" })}
+            className="flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground"
+          >
+            <LogIn size={18} />
+            Fazer Login
+          </button>
+        </div>
+      </Screen>
+    );
+  }
+
+  const nome = profile?.full_name || user.email || "Associado";
+  const codigo = `CAV-${user.id.slice(0, 8).toUpperCase()}`;
+  const statusPlano = subscription?.status === "active" ? "ativo" : (subscription?.status || "ativo");
+  const ativo = statusPlano === "ativo";
+  const valorPlano = subscription?.amount ?? 49.9;
+
   const campos = [
-    ["CPF", c.cpf],
-    ["Veículo", c.veiculo.modelo],
-    ["Placa", c.veiculo.placa],
-    ["Plano", `${formatarMoeda(c.plano.valor)}/mês`],
+    ["E-mail", user.email || "-"],
+    ["ID do Usuário", user.id.slice(0, 12)],
+    ["Plano", `${subscription?.plan_name || "Básico"} (${formatarMoeda(valorPlano)}/mês)`],
+    ["Validade", subscription?.current_period_end ? formatarData(subscription.current_period_end) : "2026-12-31"],
   ] as const;
 
   return (
@@ -42,18 +67,18 @@ function CarteirinhaScreen() {
               ativo ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive"
             }`}
           >
-            {rotuloStatus(c.status)}
+            {rotuloStatus(statusPlano as any)}
           </span>
         </div>
 
-        <p className="text-[15px] font-medium">{c.nome}</p>
-        <p className="mb-4 text-xs text-muted-foreground">{c.codigo}</p>
+        <p className="text-[15px] font-medium">{nome}</p>
+        <p className="mb-4 text-xs text-muted-foreground">{codigo}</p>
 
         <dl className="grid grid-cols-2 gap-3 text-xs">
           {campos.map(([label, valor]) => (
             <div key={label}>
               <dt className="text-muted-foreground">{label}</dt>
-              <dd className={label === "Plano" ? "font-medium text-primary" : "font-medium"}>
+              <dd className={label === "Plano" ? "font-medium text-primary truncate" : "font-medium truncate"}>
                 {valor}
               </dd>
             </div>
@@ -66,10 +91,10 @@ function CarteirinhaScreen() {
       </section>
 
       <div className="mt-4 grid grid-cols-2 gap-3">
-        <button className="flex items-center justify-center gap-2 rounded-xl border border-border bg-card py-3 text-sm">
+        <button className="flex items-center justify-center gap-2 rounded-xl border border-border bg-card py-3 text-sm hover:bg-accent transition-colors">
           <Share2 size={16} className="text-primary" /> Compartilhar
         </button>
-        <button className="flex items-center justify-center gap-2 rounded-xl border border-border bg-card py-3 text-sm">
+        <button className="flex items-center justify-center gap-2 rounded-xl border border-border bg-card py-3 text-sm hover:bg-accent transition-colors">
           <Download size={16} className="text-primary" /> Baixar PDF
         </button>
       </div>

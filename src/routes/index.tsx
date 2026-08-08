@@ -1,9 +1,9 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { Bell, FileText, Gift, Receipt, Store, Car, Coins, Sparkles, Loader2, AlertCircle } from "lucide-react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
+import { Bell, FileText, Gift, Receipt, Store, Car, Coins, Sparkles, Loader2, AlertCircle, LogIn } from "lucide-react";
 import { Screen } from "@/components/AppShell";
 import { useSupabase } from "@/context/SupabaseContext";
 import { formatarData, formatarMoeda, rotuloStatus } from "@/lib/format";
-import { mockCarteirinha } from "@/lib/mock-data";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -32,6 +32,7 @@ const atalhos = [
 ] as const;
 
 function HomeScreen() {
+  const navigate = useNavigate();
   const {
     user,
     profile,
@@ -43,15 +44,7 @@ function HomeScreen() {
     error,
   } = useSupabase();
 
-  const mockC = mockCarteirinha;
-  const nomeExibicao = profile?.full_name || user?.email || mockC.nome;
-  const primeiroNome = nomeExibicao.split(" ")[0];
-  const saldoCreditos = wallet?.balance ?? 0;
-  const unreadNotifs = notifications.filter((n) => !n.read).length;
-
-  const statusPlano = subscription?.status === "active" ? "ativo" : (subscription?.status || mockC.status);
-  const ativo = statusPlano === "ativo";
-
+  // If loading, show spinner
   if (loading) {
     return (
       <Screen>
@@ -62,6 +55,42 @@ function HomeScreen() {
       </Screen>
     );
   }
+
+  // If not authenticated, show login prompt or button to go to /login
+  if (!user) {
+    return (
+      <Screen>
+        <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 text-center px-4">
+          <div className="grid size-16 place-items-center rounded-2xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+            <Car size={32} />
+          </div>
+          <h2 className="text-xl font-bold text-foreground">Acesse sua conta</h2>
+          <p className="text-xs text-muted-foreground max-w-xs">
+            Faça login com a sua conta do Supabase para visualizar sua carteirinha, saldo de créditos e benefícios.
+          </p>
+          <button
+            onClick={() => navigate({ to: "/login" })}
+            className="mt-2 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 px-6 py-3 text-sm font-semibold text-white shadow-md hover:brightness-110 transition-all"
+          >
+            <LogIn size={18} />
+            Fazer Login
+          </button>
+        </div>
+      </Screen>
+    );
+  }
+
+  // Real user data from Supabase
+  const nomeExibicao = profile?.full_name || user.email || "Associado";
+  const primeiroNome = nomeExibicao.split(" ")[0];
+  const codigoAssociado = `CAV-${user.id.slice(0, 8).toUpperCase()}`;
+  const saldoCreditos = wallet?.balance ?? 0;
+  const unreadNotifs = notifications.filter((n) => !n.read).length;
+
+  const statusPlano = subscription?.status === "active" ? "ativo" : (subscription?.status || "ativo");
+  const ativo = statusPlano === "ativo";
+  const valorPlano = subscription?.amount ?? 49.9;
+  const vencimentoPlano = subscription?.current_period_end || "2026-12-31";
 
   return (
     <Screen>
@@ -164,30 +193,25 @@ function HomeScreen() {
           </span>
         </div>
         <p className="text-sm font-medium">{nomeExibicao}</p>
-        <p className="mb-4 text-xs text-muted-foreground">{mockC.codigo}</p>
+        <p className="mb-4 text-xs text-muted-foreground">{codigoAssociado}</p>
         <dl className="grid grid-cols-2 gap-3 text-xs">
           <div>
-            <dt className="text-muted-foreground">Veículo</dt>
-            <dd className="font-medium">{mockC.veiculo.modelo}</dd>
+            <dt className="text-muted-foreground">E-mail</dt>
+            <dd className="font-medium truncate">{user.email}</dd>
           </div>
           <div>
-            <dt className="text-muted-foreground">Placa</dt>
-            <dd className="font-medium">{mockC.veiculo.placa}</dd>
+            <dt className="text-muted-foreground">ID do Usuário</dt>
+            <dd className="font-medium truncate">{user.id.slice(0, 8)}...</dd>
           </div>
           <div>
             <dt className="text-muted-foreground">Plano</dt>
             <dd className="font-medium text-primary">
-              {subscription?.plan_name || mockC.plano.nome} (
-              {formatarMoeda(subscription?.amount ?? mockC.plano.valor)}/mês)
+              {subscription?.plan_name || "Básico"} ({formatarMoeda(valorPlano)}/mês)
             </dd>
           </div>
           <div>
             <dt className="text-muted-foreground">Vencimento</dt>
-            <dd className="font-medium">
-              {subscription?.current_period_end
-                ? formatarData(subscription.current_period_end)
-                : formatarData(mockC.vencimento)}
-            </dd>
+            <dd className="font-medium">{formatarData(vencimentoPlano)}</dd>
           </div>
         </dl>
       </section>
@@ -209,14 +233,9 @@ function HomeScreen() {
         <p className="text-xs text-muted-foreground">Próximo vencimento</p>
         <div className="mt-1 flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-xl font-semibold text-primary">
-              {formatarMoeda(subscription?.amount ?? mockC.plano.valor)}
-            </p>
+            <p className="text-xl font-semibold text-primary">{formatarMoeda(valorPlano)}</p>
             <p className="text-xs text-muted-foreground">
-              Vence em{" "}
-              {subscription?.current_period_end
-                ? formatarData(subscription.current_period_end)
-                : formatarData(mockC.vencimento)}
+              Vence em {formatarData(vencimentoPlano)}
             </p>
           </div>
           <Link
