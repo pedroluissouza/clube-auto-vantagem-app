@@ -7,7 +7,9 @@ import type {
   ApiErro,
 } from "./types";
 
-const BASE_URL = import.meta.env.VITE_API_URL ?? "https://planos.clubeautovantagem.com.br/api";
+const env = import.meta.env as Record<string, string | undefined>;
+const BASE_URL = env["VITE_API_URL"] ?? "https://planos.clubeautovantagem.com.br/api";
+
 
 function getToken(): string | null {
   return localStorage.getItem("cav_token");

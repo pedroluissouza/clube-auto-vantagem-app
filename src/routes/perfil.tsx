@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Bell, Car, ChevronRight, Headset, LogOut, User } from "lucide-react";
 import { Screen } from "@/components/AppShell";
-import { clearToken } from "@/lib/api";
+import { useSupabase } from "@/context/SupabaseContext";
 import { mockCarteirinha, mockContrato } from "@/lib/mock-data";
 import { formatarData } from "@/lib/format";
 
@@ -22,12 +22,19 @@ export const Route = createFileRoute("/perfil")({
 
 function PerfilScreen() {
   const navigate = useNavigate();
-  const c = mockCarteirinha;
-  const iniciais = c.nome
+  const { user, profile, subscription, logout } = useSupabase();
+
+  const nome = profile?.full_name || user?.email || mockCarteirinha.nome;
+  const iniciais = nome
     .split(" ")
     .slice(0, 2)
     .map((n) => n[0])
-    .join("");
+    .join("")
+    .toUpperCase();
+
+  const dataInicio = subscription?.current_period_start
+    ? formatarData(subscription.current_period_start)
+    : formatarData(mockContrato.plano.inicio);
 
   const itens = [
     { label: "Meus dados", icon: User },
@@ -36,6 +43,11 @@ function PerfilScreen() {
     { label: "Suporte / WhatsApp", icon: Headset },
   ] as const;
 
+  const handleLogout = async () => {
+    await logout();
+    navigate({ to: "/login" });
+  };
+
   return (
     <Screen title="Perfil">
       <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3">
@@ -43,9 +55,9 @@ function PerfilScreen() {
           {iniciais}
         </div>
         <div className="min-w-0">
-          <p className="truncate text-sm font-medium">{c.nome}</p>
+          <p className="truncate text-sm font-medium">{nome}</p>
           <p className="text-xs text-muted-foreground">
-            Associado desde {formatarData(mockContrato.plano.inicio)}
+            Associado desde {dataInicio}
           </p>
         </div>
       </div>
@@ -62,14 +74,11 @@ function PerfilScreen() {
           </button>
         ))}
         <button
-          onClick={() => {
-            clearToken();
-            navigate({ to: "/login" });
-          }}
-          className="flex w-full items-center gap-3 bg-card p-3 text-left"
+          onClick={handleLogout}
+          className="flex w-full items-center gap-3 bg-card p-3 text-left hover:bg-destructive/10 transition-colors"
         >
           <LogOut size={16} className="shrink-0 text-destructive" />
-          <span className="flex-1 text-[13px] text-destructive">Sair</span>
+          <span className="flex-1 text-[13px] text-destructive">Sair da conta</span>
         </button>
       </div>
     </Screen>

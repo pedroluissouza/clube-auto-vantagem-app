@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Car, Fingerprint, Lock, ArrowRight, AlertCircle } from "lucide-react";
 import { useState } from "react";
-import { api, ApiError } from "@/lib/api";
+import { signInWithEmail } from "@/lib/supabase/auth";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -33,14 +33,14 @@ function LoginScreen() {
     setCarregando(true);
     setErro(null);
     try {
-      await api.login(usuario, senha);
-      navigate({ to: "/" });
-    } catch (err) {
-      if (err instanceof ApiError) {
-        setErro(err.message);
+      const { user, error } = await signInWithEmail(usuario, senha);
+      if (error || !user) {
+        setErro(error?.message || "Credenciais inválidas. Verifique seu e-mail e senha.");
       } else {
-        setErro("Ocorreu um erro ao tentar entrar. Verifique sua conexão e tente novamente.");
+        navigate({ to: "/" });
       }
+    } catch (err: any) {
+      setErro(err?.message || "Ocorreu um erro ao tentar entrar. Verifique sua conexão e tente novamente.");
     } finally {
       setCarregando(false);
     }
